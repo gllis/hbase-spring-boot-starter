@@ -94,6 +94,28 @@ public class HbaseTemplate {
         }));
     }
 
+    public void deleteObject(RowKey rowKey, Class<?> clazz) {
+        List<RowKey> rowKeyList = new ArrayList<>();
+        rowKeyList.add(rowKey);
+        deleteObjectList(rowKeyList, clazz);
+    }
+
+    public void deleteObjectList(List<RowKey> rowKeyList, Class<?> clazz) {
+        HbaseTable hbaseTable = clazz.getAnnotation(HbaseTable.class);
+        if (hbaseTable == null) {
+            return;
+        }
+        operations.execute(hbaseTable.value(), (table -> {
+            List<Delete> deleteList = new ArrayList<>();
+            for (RowKey rowKey : rowKeyList) {
+                Delete delete = new Delete(rowKey.toBytes());
+                deleteList.add(delete);
+            }
+            table.delete(deleteList);
+            return null;
+        }));
+    }
+
     /**
      * 查询列表
      *
@@ -104,6 +126,17 @@ public class HbaseTemplate {
      */
     public <T> List<T> find(RowKey startRowKey, RowKey endRowKey, Class<T> clazz) {
         Scan scan = new Scan(startRowKey.toBytes(), endRowKey.toBytes());
+        return find(scan, clazz);
+    }
+
+    /**
+     * 查询列表
+     *
+     * @param scan
+     * @param clazz
+     * @return
+     */
+    public <T> List<T> find(Scan scan, Class<T> clazz) {
         HbaseTable hbaseTable = clazz.getAnnotation(HbaseTable.class);
         if (hbaseTable == null) {
             return Collections.emptyList();
@@ -125,7 +158,6 @@ public class HbaseTemplate {
             }
         });
     }
-
     /**
      * 查询指定id对象
      *
